@@ -12,6 +12,22 @@ void Type::releaseResources(){
         break;
     case TypeId::OBJECT:
         this->_object.~unordered_map<std::string, std::shared_ptr<Type>>();
+        break;
+    }
+}
+void Type::initializeResources(){
+    switch(this->_id){
+    case TypeId::NUMBER:
+        break;
+    case TypeId::TEXT:
+        new (&this->_text) std::string();
+        break;
+    case TypeId::LIST:
+        new (&this->_list) std::vector<Type>();
+        break;
+    case TypeId::OBJECT:
+        new (&this->_object) std::unordered_map<std::string, std::shared_ptr<Type>>();
+        break;
     }
 }
 Type computeNumberSum(const Type& _first, const Type& _second){
@@ -126,8 +142,11 @@ Type Type::Object(){
     return _to_return;
 }
 Type& Type::operator=(const Type& ref){
-    this->releaseResources();
-    this->_id = ref._id;
+    if(this->_id != ref._id){
+        this->releaseResources();
+        this->_id = ref._id;
+        this->initializeResources();
+    }
     switch(this->_id){
     case TypeId::NUMBER:
         this->_number = ref._number;
@@ -179,9 +198,16 @@ Type Type::operator%(const Type& object){
     if(it == Type::_function_map.end()) throw std::runtime_error("This operation is not valid/defined.");
     return it->second(*this, object);
 }
+
 Type& Type::operator[](const std::string& key){
-    if(this->_id != OBJECT) throw std::runtime_error("This operation is not valid/defined.");
-    return *(this->_object[key]);
+    if(this->_id != OBJECT) throw std::runtime_error("Type must be an object.");
+    auto it = this->_object.find(key);
+    if(it == this->_object.end()) throw std::runtime_error("The key: \"" + key + "\" was not found in the map.");
+    return *it->second;
+}
+Type& Type::operator[](size_t index){
+    if(this->_id != LIST) throw std::runtime_error("Type must be a list.");
+    return this->_list[index];
 }
 Type::~Type(){
     this->releaseResources();

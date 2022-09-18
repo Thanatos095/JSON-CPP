@@ -3,6 +3,12 @@
 List::List(Type& list){
     if(list._id != LIST) throw std::runtime_error("Object is not an iterable type.");
     this->_list = &list._list;
+    this->_owns_memory = false;
+}
+List::List(Type&& source){
+    if(source._id != LIST) throw std::runtime_error("Object is not an iterable type.");
+    this->_list = new std::vector<Type>(std::move(source._list));
+    this->_owns_memory = true;
 }
 void List::push(const Type& item){
     this->_list->push_back(item);
@@ -21,11 +27,20 @@ Type List::map(Type(*call_back)(Type&, size_t)){
     }
     return _to_return;
 }
+void List::forEach(void(*call_back)(Type&, size_t)){
+    for(size_t i = 0 ; i < this->_list->size() ; i++){
+        call_back((*this->_list)[i], i);
+    }
+}
 Type List::pop(){
     Type _to_return = (*this->_list)[this->_list->size() - 1];
     this->_list->pop_back();
     return _to_return;
 }
+size_t List::length(){
+    return this->_list->size();
+}
 List::~List(){
-    this->_list = nullptr;
+    if(this->_owns_memory) delete this->_list;
+    else this->_list = nullptr;
 }

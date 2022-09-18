@@ -5,7 +5,7 @@
 #include<vector>
 #include<memory>
 
-#define field(X,...) (std::make_pair(#X, Type(__VA_ARGS__)))
+#define field(X,...) (std::make_pair(std::string(#X), Type(__VA_ARGS__)))
 
 enum TypeId{
     NUMBER = 1,
@@ -46,7 +46,9 @@ private:
     friend Type computeStringConcat(const Type& _first, const Type& _second);
     friend Type computeListConcat(const Type& _first, const Type& _second);
     friend class List;
+    friend class Object;
     void releaseResources();
+    void initializeResources();
     typedef Type (*function_type)(const Type& _first, const Type& _second);
     static std::unordered_map<size_t, function_type> _function_map;
     Type();
@@ -70,6 +72,7 @@ public:
     Type operator/(const Type& object);
     Type operator%(const Type& object);
     Type& operator[](const std::string&);
+    Type& operator[](size_t index);
     friend std::ostream& operator<< (std::ostream& stream, const Type& object);
     ~Type();
 };
