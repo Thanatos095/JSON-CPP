@@ -57,7 +57,6 @@ enum class States{
 
 /* This function is return in reference to a push down automata*/
 Type Object::parser(const std::vector<std::string>& tokens){
-    
     auto isString = [](const std::string& token){
         std::regex string_literal(R"(\"\w*\")");
         return std::regex_match(token, string_literal);
@@ -72,27 +71,11 @@ Type Object::parser(const std::vector<std::string>& tokens){
     auto isBoolean = [](const std::string& token){
         return token == "true" || token == "false";
     };
-    auto getInnerChild = [](std::vector<std::string>& keys, Type& object) -> Type& {
-        Type* child = &object;
-        for(size_t i = 0 ; i < keys.size() - 1 ; i++){
-            child = &(*child)[keys[i]];
-        }
-        return (*child)[keys[keys.size() - 1]];
-    };
-    auto getInnerList = [](int* indices, size_t size, Type& list) ->Type& {
-        Type* inner = &list;
-        for(size_t i = 0 ; i < size ; i++){
-            inner = &(*inner)[indices[i]];
-        }
-        return *inner;
-    };
     Type JSON = Type::Object();
-    std::stack<char> stack;
-    std::vector<std::string> keys;
-    std::vector<int> listIndices;
-    size_t depth = 0;
+    std::stack<Type*> stack;
+    std::string activeKey;
     assert(tokens[0] == "{");
-    stack.push('{');
+    stack.push(&JSON);
     int state = 2;
     for(size_t i = 1 ; i < tokens.size() ; i++){
         const std::string& token = tokens[i];
@@ -101,9 +84,7 @@ Type Object::parser(const std::vector<std::string>& tokens){
             case 2:
                 if(isString(tokens[i])){
                     std::string temp = tokens[i].substr(1, tokens[i].length() - 2);
-                    if(depth + 1 > keys.size())
-                        keys.push_back(temp);
-                    else keys[depth] = temp;
+                    activeKey = temp;
                     state = 3;
                 }
                 else state = -1;
@@ -115,15 +96,13 @@ Type Object::parser(const std::vector<std::string>& tokens){
             case 4: {
                 bool isStr = false, isNum = false, isBool = false, isNulled = false;
                 if(tokens[i] == "{"){
-                    stack.push('{');
-                    depth++;
-                    getInnerChild(keys, JSON) = Type::Object();
+                    (*stack.top())[activeKey] = Type::Object();
+                    stack.push(&(*stack.top())[activeKey]);
                     state = 2;
                 }
                 else if(tokens[i] == "["){
-                    stack.push('[');
-                    getInnerChild(keys, JSON) = Type::List();
-                    listIndices = {0};
+                    (*stack.top())[activeKey] = Type::List();
+                    stack.push(&(*stack.top())[activeKey]);
                     state = 6;
                 }
                 else if((isStr = isString(tokens[i])) ||
@@ -132,12 +111,12 @@ Type Object::parser(const std::vector<std::string>& tokens){
                         (isNulled = isNull(tokens[i]))){
                             std::string temp = tokens[i];
                             if(isStr) temp = tokens[i].substr(1, tokens[i].length() - 2); /*Trimming the quotes*/
-                            if(stack.top() == '{')
+                            if(stack.top()->_id == OBJECT)
                             {
-                                // getInnerChild(keys, get) = temp; /* Stuck here */
+                                (*stack.top())[activeKey] = temp;
                             }   
-                            else if(stack.top() == '['){
-                                getInnerList(listIndices.data(), listIndices.size() - 1, getInnerChild(keys, JSON))._list.push_back(temp);
+                            else if(stack.top()->_id == LIST){
+                                (*stack.top())._list.push_back(temp);
                             }         
                             state = 5;
                             
@@ -147,30 +126,25 @@ Type Object::parser(const std::vector<std::string>& tokens){
             }
             case 5:
                 if(tokens[i] == ","){
-                    if(stack.top() == '{'){
+                    if(stack.top()->_id == OBJECT){
                         state = 2;
                     }
-                    else if(stack.top() == '['){
-                        listIndices[listIndices.size() - 1]++;
+                    else if(stack.top()->_id == LIST){
                         state = 6;
                     }
                 }
                 else if(tokens[i] == "}"){
-                    if(stack.top() != '{') state = -1;
-                    else
-                    {
+                    if(stack.top()->_id == OBJECT){
                         stack.pop();
-                        keys.pop_back();
-                        depth--;
-                    }
+                    } 
+                    else state = -1;
                     /* remain at state 5*/
                 }
                 else if(tokens[i] == "]"){
-                    if(stack.top() != '[') state = -1;
-                    else{
-                        listIndices.pop_back();
+                    if(stack.top()->_id == LIST){
                         stack.pop();
                     } 
+                    else state = -1;
                     /* remain at state 5*/
                 }
                 else state = -1;
@@ -179,15 +153,13 @@ Type Object::parser(const std::vector<std::string>& tokens){
                 bool isStr = false, isNum = false, isBool = false, isNulled = false;
                 if(tokens[i] == "{")
                 {
-                    stack.push('{');
-                    depth++;
-                    getInnerList(listIndices.data(), listIndices.size() - 1, getInnerChild(keys, JSON))._list.push_back(Type::Object());
+                    stack.top()->_list.push_back(Type::Object());
+                    stack.push(&(*stack.top())[stack.top()->_list.size() - 1]);
                     state = 2;
                 }
                 else if(tokens[i] == "["){
-                    stack.push('[');
-                    getInnerList(listIndices.data(), listIndices.size() - 1, getInnerChild(keys, JSON))._list.push_back(Type::List());
-                    listIndices.push_back(0);
+                    stack.top()->_list.push_back(Type::List());
+                    stack.push(&(*stack.top())[stack.top()->_list.size() - 1]);
                     /*Remain at state 6*/
                 }
                 else if((isStr = isString(tokens[i])) ||
@@ -196,16 +168,15 @@ Type Object::parser(const std::vector<std::string>& tokens){
                         (isNulled = isNull(tokens[i]))){
                             std::string temp = tokens[i];
                             if(isStr) temp = tokens[i].substr(1, tokens[i].length() - 2); /*Trimming the quotes*/
-                            if(stack.top() == '{')
+                            if(stack.top()->_id == OBJECT)
                             {
-                                getInnerChild(keys, JSON) = temp;
+                                (*stack.top())[activeKey] = temp;
                             }   
-                            else if(stack.top() == '['){
+                            else if(stack.top()->_id == LIST){
 
-                                getInnerList(listIndices.data(), listIndices.size() - 1, getInnerChild(keys, JSON))._list.push_back(temp);
+                                (*stack.top())._list.push_back(temp);
                             }         
                             state = 5;
-                            
                         }
                 else state = -1;
                 break;

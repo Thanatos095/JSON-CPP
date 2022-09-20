@@ -99,6 +99,7 @@ Type::Type(Type&& source){
 }
 Type::Type(){
     this->_id = NUMBER;
+    this->_number = 0;
 }
 template<typename T>
 Type::Type(T value){
