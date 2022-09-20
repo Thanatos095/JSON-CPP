@@ -51,7 +51,7 @@ private:
     void initializeResources();
     typedef Type (*function_type)(const Type& _first, const Type& _second);
     static std::unordered_map<size_t, function_type> _function_map;
-    Type();
+    Type(); 
 public:
     Type(const Type&);
     Type(Type&&);

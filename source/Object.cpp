@@ -18,11 +18,10 @@ std::vector<std::string> Object::lexer(const std::string& data){
     std::vector<std::string> tokens;
 
     for(size_t i = 0 ; i < data.length() ; i++){
-        char c = data[i];
+        // char c = data[i];
         if(isspace(data[i])) continue;
         else if(contains(symbols, data[i]) != -1){
             tokens.push_back(std::string(1, data[i]));
-            std::cout << tokens[tokens.size() - 1] << '\n';
         }
         else if(data[i] == '\"'){
             std::string token = "\"";
@@ -38,14 +37,12 @@ std::vector<std::string> Object::lexer(const std::string& data){
             }
             token += '\"';
             tokens.push_back(token);
-            std::cout << tokens[tokens.size() - 1] << '\n';
         }
         else{
             std::string token;
             while(contains(symbols, data[i]) == -1) token += data[i++];
             i--;
             tokens.push_back(token);
-            std::cout << tokens[tokens.size() - 1] << '\n';
         }
     }
     return tokens;
@@ -54,46 +51,171 @@ enum class States{
     OBJECT,
     LIST
 };
+
+
+
+
+/* This function is return in reference to a push down automata*/
 Type Object::parser(const std::vector<std::string>& tokens){
+    
+    auto isString = [](const std::string& token){
+        std::regex string_literal(R"(\"\w*\")");
+        return std::regex_match(token, string_literal);
+    };
+    auto isNumeric = [](const std::string& token){
+        std::regex number_literal("[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)");
+        return std::regex_match(token, number_literal);
+    };
+    auto isNull = [](const std::string& token){
+        return token == "null";
+    };
+    auto isBoolean = [](const std::string& token){
+        return token == "true" || token == "false";
+    };
+    auto getInnerChild = [](std::vector<std::string>& keys, Type& object) -> Type& {
+        Type* child = &object;
+        for(size_t i = 0 ; i < keys.size() - 1 ; i++){
+            child = &(*child)[keys[i]];
+        }
+        return (*child)[keys[keys.size() - 1]];
+    };
+    auto getInnerList = [](int* indices, size_t size, Type& list) ->Type& {
+        Type* inner = &list;
+        for(size_t i = 0 ; i < size ; i++){
+            inner = &(*inner)[indices[i]];
+        }
+        return *inner;
+    };
     Type JSON = Type::Object();
-    std::string state = "object";
-    assert(tokens[0] == "{" && tokens[tokens.size() - 1] == "}");
+    std::stack<char> stack;
+    std::vector<std::string> keys;
+    std::vector<int> listIndices;
+    size_t depth = 0;
+    assert(tokens[0] == "{");
+    stack.push('{');
+    int state = 2;
+    for(size_t i = 1 ; i < tokens.size() ; i++){
+        const std::string& token = tokens[i];
+        std::cout << JSON << '\n';
+        switch(state){
+            case 2:
+                if(isString(tokens[i])){
+                    std::string temp = tokens[i].substr(1, tokens[i].length() - 2);
+                    if(depth + 1 > keys.size())
+                        keys.push_back(temp);
+                    else keys[depth] = temp;
+                    state = 3;
+                }
+                else state = -1;
+                break;
+            case 3:
+                if(tokens[i] == ":") state = 4;
+                else state = -1;
+                break;
+            case 4: {
+                bool isStr = false, isNum = false, isBool = false, isNulled = false;
+                if(tokens[i] == "{"){
+                    stack.push('{');
+                    depth++;
+                    getInnerChild(keys, JSON) = Type::Object();
+                    state = 2;
+                }
+                else if(tokens[i] == "["){
+                    stack.push('[');
+                    getInnerChild(keys, JSON) = Type::List();
+                    listIndices = {0};
+                    state = 6;
+                }
+                else if((isStr = isString(tokens[i])) ||
+                        (isNum = isNumeric(tokens[i])) ||
+                        (isBool = isBoolean(tokens[i])) ||
+                        (isNulled = isNull(tokens[i]))){
+                            std::string temp = tokens[i];
+                            if(isStr) temp = tokens[i].substr(1, tokens[i].length() - 2); /*Trimming the quotes*/
+                            if(stack.top() == '{')
+                            {
+                                // getInnerChild(keys, get) = temp; /* Stuck here */
+                            }   
+                            else if(stack.top() == '['){
+                                getInnerList(listIndices.data(), listIndices.size() - 1, getInnerChild(keys, JSON))._list.push_back(temp);
+                            }         
+                            state = 5;
+                            
+                        }
+                else state = -1;
+                break;
+            }
+            case 5:
+                if(tokens[i] == ","){
+                    if(stack.top() == '{'){
+                        state = 2;
+                    }
+                    else if(stack.top() == '['){
+                        listIndices[listIndices.size() - 1]++;
+                        state = 6;
+                    }
+                }
+                else if(tokens[i] == "}"){
+                    if(stack.top() != '{') state = -1;
+                    else
+                    {
+                        stack.pop();
+                        keys.pop_back();
+                        depth--;
+                    }
+                    /* remain at state 5*/
+                }
+                else if(tokens[i] == "]"){
+                    if(stack.top() != '[') state = -1;
+                    else{
+                        listIndices.pop_back();
+                        stack.pop();
+                    } 
+                    /* remain at state 5*/
+                }
+                else state = -1;
+                break;
+            case 6: {
+                bool isStr = false, isNum = false, isBool = false, isNulled = false;
+                if(tokens[i] == "{")
+                {
+                    stack.push('{');
+                    depth++;
+                    getInnerList(listIndices.data(), listIndices.size() - 1, getInnerChild(keys, JSON))._list.push_back(Type::Object());
+                    state = 2;
+                }
+                else if(tokens[i] == "["){
+                    stack.push('[');
+                    getInnerList(listIndices.data(), listIndices.size() - 1, getInnerChild(keys, JSON))._list.push_back(Type::List());
+                    listIndices.push_back(0);
+                    /*Remain at state 6*/
+                }
+                else if((isStr = isString(tokens[i])) ||
+                        (isNum = isNumeric(tokens[i])) ||
+                        (isBool = isBoolean(tokens[i])) ||
+                        (isNulled = isNull(tokens[i]))){
+                            std::string temp = tokens[i];
+                            if(isStr) temp = tokens[i].substr(1, tokens[i].length() - 2); /*Trimming the quotes*/
+                            if(stack.top() == '{')
+                            {
+                                getInnerChild(keys, JSON) = temp;
+                            }   
+                            else if(stack.top() == '['){
 
-
-    // std::vector<std::string> opening_symbols = {"{", "[", ":"};    
-    // std::vector<std::string> closing_symbols = {"}", "]"};
-    // std::stack<std::string> brackets;
-    // std::stack<States> state;
-    // std::regex string_literal(R"("|')(?:\\\1|[^\1])*?\1)");
-    // std::regex string_literal(R"(\"\w*\")");
-    // std::regex number_literal("[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)"); /*Numbers */
-    // for(size_t i = 0 ; i < tokens.size() ; i++){
-    //     const std::string& token = tokens[i];
-    //     int index;
-    //     if((index = contains(opening_symbols, token)) != -1){
-    //         if(tokens[i] == ":" || tokens[i] = "{") state.push(States::OBJECT);
-    //         brackets.push(tokens[i]);
-    //     }
-    //     else if((index = contains(closing_symbols, token)) != -1){
-    //         if(brackets.empty() || brackets.top() != opening_symbols[index]) throw std::runtime_error("Missing opening bracket for "  + tokens[i]);
-    //         brackets.pop();
-    //     }
-    //     else if(std::regex_match(tokens[i], string_literal)){
-    //         if(state.top() == States::OBJECT){
-
-    //         }
-    //         std::cout << tokens[i] << '\n';
-    //     }
-    //     else if(std::regex_match(tokens[i], number_literal)){
-    //         std::cout << tokens[i] << '\n';
-    //     }
-    //     else if(tokens[i] == ":"){
-    //         // state = ':';
-    //     }
-    //     else{
-    //         throw std::runtime_error("Token : " + token[i] + std::string("not recognized"));
-    //     }
-    // }
+                                getInnerList(listIndices.data(), listIndices.size() - 1, getInnerChild(keys, JSON))._list.push_back(temp);
+                            }         
+                            state = 5;
+                            
+                        }
+                else state = -1;
+                break;
+            }
+            case -1: /*Error state*/
+                throw std::runtime_error("Error while parsing: " + tokens[i - 1]);
+        }
+    }
+    assert(stack.empty());
+    return JSON;
 }
 Type Object::FromJSON(const std::string& file_name){
     std::ifstream _handle(file_name);

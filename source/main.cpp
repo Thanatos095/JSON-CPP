@@ -24,6 +24,6 @@ int main(){
     // Type user_info = {1, 2, "Mahad Hameed", {1, 2, 3, 4, 5, {3, 4, 5, 6}}};  
     // std::cout << user_info << '\n';
     // std::cout << user_info["address"] << '\n';    
-    std::cout << Object::FromJSON("data.json");
+    std::cout << Object::FromJSON("lists.json");
     return 0;
 }

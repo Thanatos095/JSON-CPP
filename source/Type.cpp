@@ -98,7 +98,7 @@ Type::Type(Type&& source){
     }
 }
 Type::Type(){
-
+    this->_id = NUMBER;
 }
 template<typename T>
 Type::Type(T value){
@@ -202,8 +202,9 @@ Type Type::operator%(const Type& object){
 Type& Type::operator[](const std::string& key){
     if(this->_id != OBJECT) throw std::runtime_error("Type must be an object.");
     auto it = this->_object.find(key);
-    if(it == this->_object.end()) throw std::runtime_error("The key: \"" + key + "\" was not found in the map.");
-    return *it->second;
+    if(it == this->_object.end())
+        this->_object.insert(std::pair(key, std::make_shared<Type>(Type())));
+    return *this->_object[key];
 }
 Type& Type::operator[](size_t index){
     if(this->_id != LIST) throw std::runtime_error("Type must be a list.");
