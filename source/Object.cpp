@@ -3,6 +3,26 @@
 #define FALSE_LENGTH 5
 #define TRUE_LENGTH 4
 #define NULL_LENGTH 4
+
+static inline void ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }));
+}
+
+// trim from end (in place)
+static inline void rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }).base(), s.end());
+}
+
+// trim from both ends (in place)
+static inline void trim(std::string &s) {
+    ltrim(s);
+    rtrim(s);
+}
+
 Object::Object(Type& ref){
     if(ref._id != OBJECT) throw std::runtime_error("Object is not a map type.");
     this->_map = &ref._object;
@@ -36,12 +56,14 @@ std::vector<std::string> Object::lexer(const std::string& data){
                 }
             }
             token += '\"';
+            trim(token);
             tokens.push_back(token);
         }
         else{
             std::string token;
             while(contains(symbols, data[i]) == -1) token += data[i++];
             i--;
+            trim(token);
             tokens.push_back(token);
         }
     }
@@ -84,6 +106,14 @@ Type Object::parser(const std::vector<std::string>& tokens){
                 if(isString(tokens[i])){
                     activeKey  = tokens[i].substr(1, tokens[i].length() - 2);
                     state = 3;
+                }
+                else if(tokens[i] == "}"){
+                    if(stack.top()->_id == OBJECT){
+                        stack.pop();
+                        state = 5;
+                    } 
+                    else state = -1;
+
                 }
                 else state = -1;
                 break;
@@ -158,13 +188,17 @@ Type Object::parser(const std::vector<std::string>& tokens){
                     stack.push(&(*stack.top())[stack.top()->_list.size() - 1]);
                     state = 2;
                 }
+                else if(tokens[i] == "["){
+                    stack.top()->_list.push_back(Type::List());
+                    stack.push(&(*stack.top())[stack.top()->_list.size() - 1]);
+                    /*Remain at state 6*/
+                }
                 else if(tokens[i] == "]"){
                     if(stack.top()->_id == LIST){
                         stack.pop();
                         state = 5;
                     } 
                     else state = -1;
-                    /* remain at state 5*/
                 }
                 else if((isStr = isString(tokens[i])) ||
                         (isNum = isNumeric(tokens[i])) ||
@@ -206,6 +240,9 @@ Type Object::FromJSON(const std::string& file_name){
     }
     _handle.close();
     std::vector<std::string> tokens = Object::lexer(buffer);
+    // for(auto& x: tokens){
+    //     std::cout << x << '\n';
+    // }
     return Object::parser(tokens);
 }
 

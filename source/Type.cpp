@@ -224,8 +224,9 @@ Type& Type::operator[](size_t index){
 Type::~Type(){
     this->releaseResources();
 }
-std::ostream& operator<< (std::ostream& stream, const Type& object)
-{
+void Type::prettyPrint(std::ostream& stream, const Type& object, size_t depth){
+    std::string indentation = std::string(depth, '\t');
+    stream << indentation;
     switch (object._id)
     {
     case TypeId::NUMBER:
@@ -235,17 +236,20 @@ std::ostream& operator<< (std::ostream& stream, const Type& object)
         stream << '\"' << object._text << '\"';
         break;
     case TypeId::LIST:
-        stream << '[';
+        stream  << "[\n";
         for(size_t i = 0 ; i < object._list.size() ; i++){
-            stream << object._list[i];
+            Type::prettyPrint(stream, object._list[i], depth + 1);
             if(i < object._list.size() - 1) stream << ", ";
+            stream << '\n';
         }
         stream << ']';
         break;
     case TypeId::OBJECT:
-        stream << "{\n";
+        stream  << "{\n";
         for(auto pair : object._object){
-            stream << "     " << '\"' << pair.first << '\"' << " : " << *pair.second << ",\n";
+            stream  << '\"' << pair.first << '\"' << " : ";
+            Type::prettyPrint(stream, *pair.second, depth + 1);
+            stream << ",\n";
         }
         stream << "\n}";
         break;
@@ -253,9 +257,13 @@ std::ostream& operator<< (std::ostream& stream, const Type& object)
         stream << "null";
         break;
     case TypeId::BOOLEAN:
-        stream << (object._number == 1 ? "true" : "false");
+        stream  << (object._number == 1 ? "true" : "false");
         break;
     }
+}
+std::ostream& operator<< (std::ostream& stream, const Type& object)
+{
+    object.prettyPrint(stream, object, 1);
     return stream;
 }
 

@@ -1,0 +1,18 @@
+{
+    "first_name": "Mahad",
+    "last_name": "Hameed",
+    "friends": [
+        "Raahim",
+        "Siraj",
+        "Abbas",
+        "Abdullah"
+    ],
+    "address": {
+        "city": "Karachi",
+        "country": "Pakistan",
+        "town": "Gulshan-e-Hadeed",
+        "zip": 75010
+    },
+    "children" : null,
+    "married" : false
+}
