@@ -55,10 +55,10 @@ enum class States{
 
 
 
-/* This function is return in reference to a push down automata*/
+/* This function is written in reference to a push down automata*/
 Type Object::parser(const std::vector<std::string>& tokens){
     auto isString = [](const std::string& token){
-        std::regex string_literal(R"(\"\w*\")");
+        std::regex string_literal(R"(\"([^"\\]*|\\[\\\/"bfnrtu])*\")");
         return std::regex_match(token, string_literal);
     };
     auto isNumeric = [](const std::string& token){
@@ -78,13 +78,11 @@ Type Object::parser(const std::vector<std::string>& tokens){
     stack.push(&JSON);
     int state = 2;
     for(size_t i = 1 ; i < tokens.size() ; i++){
-        const std::string& token = tokens[i];
-        std::cout << JSON << '\n';
+        // const std::string& token = tokens[i];
         switch(state){
             case 2:
                 if(isString(tokens[i])){
-                    std::string temp = tokens[i].substr(1, tokens[i].length() - 2);
-                    activeKey = temp;
+                    activeKey  = tokens[i].substr(1, tokens[i].length() - 2);
                     state = 3;
                 }
                 else state = -1;
@@ -109,14 +107,17 @@ Type Object::parser(const std::vector<std::string>& tokens){
                         (isNum = isNumeric(tokens[i])) ||
                         (isBool = isBoolean(tokens[i])) ||
                         (isNulled = isNull(tokens[i]))){
-                            std::string temp = tokens[i];
-                            if(isStr) temp = tokens[i].substr(1, tokens[i].length() - 2); /*Trimming the quotes*/
+                            Type object;
+                            if(isStr) object = tokens[i].substr(1, tokens[i].length() - 2); /*Trimming the quotes*/
+                            else if(isNum) object = std::atof(tokens[i].data());
+                            else if(isBool) object = tokens[i][0] == 'f' ? false : true;
+                            else if(isNulled) object = Type::Null();
                             if(stack.top()->_id == OBJECT)
                             {
-                                (*stack.top())[activeKey] = temp;
+                                (*stack.top())[activeKey] = object;
                             }   
                             else if(stack.top()->_id == LIST){
-                                (*stack.top())._list.push_back(temp);
+                                stack.top()->_list.push_back(object);
                             }         
                             state = 5;
                             
@@ -157,24 +158,30 @@ Type Object::parser(const std::vector<std::string>& tokens){
                     stack.push(&(*stack.top())[stack.top()->_list.size() - 1]);
                     state = 2;
                 }
-                else if(tokens[i] == "["){
-                    stack.top()->_list.push_back(Type::List());
-                    stack.push(&(*stack.top())[stack.top()->_list.size() - 1]);
-                    /*Remain at state 6*/
+                else if(tokens[i] == "]"){
+                    if(stack.top()->_id == LIST){
+                        stack.pop();
+                        state = 5;
+                    } 
+                    else state = -1;
+                    /* remain at state 5*/
                 }
                 else if((isStr = isString(tokens[i])) ||
                         (isNum = isNumeric(tokens[i])) ||
                         (isBool = isBoolean(tokens[i])) ||
                         (isNulled = isNull(tokens[i]))){
-                            std::string temp = tokens[i];
-                            if(isStr) temp = tokens[i].substr(1, tokens[i].length() - 2); /*Trimming the quotes*/
+                            Type object;
+                            if(isStr) object = tokens[i].substr(1, tokens[i].length() - 2); /*Trimming the quotes*/
+                            else if(isNum) object = std::atof(tokens[i].data());
+                            else if(isBool) object = tokens[i][0] == 'f' ? false : true;
+                            else if(isNulled) object = Type::Null();
                             if(stack.top()->_id == OBJECT)
                             {
-                                (*stack.top())[activeKey] = temp;
+                                (*stack.top())[activeKey] = object;
                             }   
                             else if(stack.top()->_id == LIST){
 
-                                (*stack.top())._list.push_back(temp);
+                                stack.top()->_list.push_back(object);
                             }         
                             state = 5;
                         }
@@ -197,12 +204,9 @@ Type Object::FromJSON(const std::string& file_name){
     {
         buffer += temp;
     }
-    auto x = Object::lexer(buffer);
-    // for(auto i : x){
-    //     std::cout << i << '\n';
-    // }
     _handle.close();
-    return parser(x);
+    std::vector<std::string> tokens = Object::lexer(buffer);
+    return Object::parser(tokens);
 }
 
 

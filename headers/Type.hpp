@@ -11,7 +11,9 @@ enum TypeId{
     NUMBER = 1,
     TEXT = 2,
     LIST = 3,
-    OBJECT = 4
+    OBJECT = 4,
+    NULL_VALUE = 5,
+    BOOLEAN = 6
 };
 enum Operations{
     SUM = 1,
@@ -30,7 +32,7 @@ class Type
 {
 private:
     union{
-        float _number;
+        double _number;
         std::string _text;
         std::vector<Type> _list;
         std::unordered_map<std::string, std::shared_ptr<Type>> _object;
@@ -62,8 +64,10 @@ public:
     Type(const std::vector<Type>&);
     Type(const std::initializer_list<Type>&);
     Type(const std::initializer_list<std::pair<std::string, Type>>&);
+    Type(bool boolean);
     static Type List(); /* Empty List */
     static Type Object(); /* Empty Object*/
+    static Type Null();
     Type& operator=(const Type&);
     bool operator==(const Type& object);
     Type operator+(const Type& object);

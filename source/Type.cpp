@@ -2,8 +2,6 @@
 void Type::releaseResources(){
     switch (this->_id)
     {
-    case TypeId::NUMBER:
-        break;
     case TypeId::TEXT:
         this->_text.~basic_string();
         break;
@@ -13,12 +11,13 @@ void Type::releaseResources(){
     case TypeId::OBJECT:
         this->_object.~unordered_map<std::string, std::shared_ptr<Type>>();
         break;
+    default:
+        break;
     }
+
 }
 void Type::initializeResources(){
     switch(this->_id){
-    case TypeId::NUMBER:
-        break;
     case TypeId::TEXT:
         new (&this->_text) std::string();
         break;
@@ -27,6 +26,8 @@ void Type::initializeResources(){
         break;
     case TypeId::OBJECT:
         new (&this->_object) std::unordered_map<std::string, std::shared_ptr<Type>>();
+        break;
+    default:
         break;
     }
 }
@@ -66,9 +67,6 @@ std::unordered_map<size_t, Type::function_type> Type::_function_map = {
 Type::Type(const Type& ref){
     this->_id = ref._id;
     switch(this->_id){
-    case TypeId::NUMBER:
-        this->_number = ref._number;
-        break;
     case TypeId::TEXT:
         new (&this->_text) std::string(ref._text);
         break;
@@ -78,14 +76,14 @@ Type::Type(const Type& ref){
     case TypeId::OBJECT:
         new (&this->_object) std::unordered_map<std::string, std::shared_ptr<Type>>(ref._object);
         break;
+    default:
+        this->_number = ref._number; /*NULL value, boolean, number*/
+        break;
     }
 }
 Type::Type(Type&& source){
     this->_id = source._id;
     switch(this->_id){
-    case TypeId::NUMBER:
-        this->_number = source._number;
-        break;
     case TypeId::TEXT:
         new (&this->_text) std::string(std::move(source._text));
         break;
@@ -95,10 +93,13 @@ Type::Type(Type&& source){
     case TypeId::OBJECT:
         new (&this->_object) std::unordered_map<std::string, std::shared_ptr<Type>>(std::move(source._object));
         break;
+    default:
+        this->_number = source._number; /*NULL value, boolean, number*/
+        break;
     }
 }
 Type::Type(){
-    this->_id = NUMBER;
+    this->_id = NULL_VALUE;
     this->_number = 0;
 }
 template<typename T>
@@ -130,9 +131,13 @@ Type::Type(const std::initializer_list<std::pair<std::string, Type>>& pairs){
         this->_object.insert(std::pair<std::string, std::shared_ptr<Type>>((pairs.begin() + i)->first, std::make_shared<Type>((pairs.begin() + i)->second)));
     }
 }
+Type::Type(bool boolean){
+    this->_id = TypeId::BOOLEAN;
+    this->_number = boolean;
+}
 Type Type::List(){
     Type _to_return;
-    _to_return._id = LIST;
+    _to_return._id = TypeId::LIST;
     new ( &_to_return._list ) std::vector<Type>();
     return _to_return;
 }
@@ -142,6 +147,11 @@ Type Type::Object(){
     new ( &_to_return._object ) std::unordered_map<std::string, std::shared_ptr<Type>>();
     return _to_return;
 }
+Type Type::Null(){
+    Type _to_return;
+    _to_return._id = NULL_VALUE;
+    return _to_return;
+}
 Type& Type::operator=(const Type& ref){
     if(this->_id != ref._id){
         this->releaseResources();
@@ -149,9 +159,6 @@ Type& Type::operator=(const Type& ref){
         this->initializeResources();
     }
     switch(this->_id){
-    case TypeId::NUMBER:
-        this->_number = ref._number;
-        break;
     case TypeId::TEXT:
         this->_text = ref._text;
         break;
@@ -160,6 +167,9 @@ Type& Type::operator=(const Type& ref){
         break;
     case TypeId::OBJECT:
         this->_object = ref._object;
+        break;
+    default:
+        this->_number = ref._number; /*NULL value, boolean, number*/
         break;
     }
     return *this;
@@ -238,6 +248,12 @@ std::ostream& operator<< (std::ostream& stream, const Type& object)
             stream << "     " << '\"' << pair.first << '\"' << " : " << *pair.second << ",\n";
         }
         stream << "\n}";
+        break;
+    case TypeId::NULL_VALUE:
+        stream << "null";
+        break;
+    case TypeId::BOOLEAN:
+        stream << (object._number == 1 ? "true" : "false");
         break;
     }
     return stream;
