@@ -240,15 +240,13 @@ Type Object::FromJSON(const std::string& file_name){
     }
     _handle.close();
     std::vector<std::string> tokens = Object::lexer(buffer);
-    // for(auto& x: tokens){
-    //     std::cout << x << '\n';
-    // }
     return Object::parser(tokens);
 }
 
-
-void Object::toJSON(const std::string& file_name){
-
+void Object::ToJSON(Type& object,const std::string& file_name){
+    std::ofstream _handle(file_name);
+    _handle << object;
+    _handle.close();
 }
 void Object::remove(const std::string& key){
     auto it = this->_map->find(key);

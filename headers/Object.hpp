@@ -14,7 +14,7 @@ class Object{
     public:
         Object(Type&);
         static Type FromJSON(const std::string&);
-        void toJSON(const std::string&);
+        static void ToJSON(Type& object, const std::string&);
         void remove(const std::string&);
         Type keys();
         ~Object();

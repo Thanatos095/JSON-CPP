@@ -225,8 +225,6 @@ Type::~Type(){
     this->releaseResources();
 }
 void Type::prettyPrint(std::ostream& stream, const Type& object, size_t depth){
-    std::string indentation = std::string(depth, '\t');
-    stream << indentation;
     switch (object._id)
     {
     case TypeId::NUMBER:
@@ -238,21 +236,26 @@ void Type::prettyPrint(std::ostream& stream, const Type& object, size_t depth){
     case TypeId::LIST:
         stream  << "[\n";
         for(size_t i = 0 ; i < object._list.size() ; i++){
+            stream << std::string(depth + 1, '\t');
             Type::prettyPrint(stream, object._list[i], depth + 1);
             if(i < object._list.size() - 1) stream << ", ";
             stream << '\n';
         }
-        stream << ']';
+        stream << std::string(depth - 1, '\t') << ']';
         break;
-    case TypeId::OBJECT:
+    case TypeId::OBJECT:{
         stream  << "{\n";
+        size_t i = 1;
         for(auto pair : object._object){
-            stream  << '\"' << pair.first << '\"' << " : ";
+            stream  << std::string(depth , '\t') << '\"' << pair.first << '\"' << " : ";
             Type::prettyPrint(stream, *pair.second, depth + 1);
-            stream << ",\n";
+            if(i != object._object.size()) stream << ","; /*Dont print comma on last element*/
+            stream << '\n';
+            i++;
         }
-        stream << "\n}";
+        stream << std::string(depth - 1, '\t') << '}';
         break;
+    }
     case TypeId::NULL_VALUE:
         stream << "null";
         break;

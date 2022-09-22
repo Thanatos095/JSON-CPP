@@ -1,0 +1,17 @@
+{
+	"friends" : [
+			"Abdullah", 
+			"Siraj", 
+			"Abbas", 
+			"Raahim"
+	],
+	"dob" : "16-OCT-2002",
+	"age" : 19,
+	"address" : {
+		"code" : 75010,
+		"town" : "Gulshan-e-Hadeed",
+		"country" : "Pakistan",
+		"city" : "Karachi"
+	},
+	"name" : "Mahad Hameed"
+}
