@@ -1,9 +1,5 @@
 #include <Object.hpp>
 
-#define FALSE_LENGTH 5
-#define TRUE_LENGTH 4
-#define NULL_LENGTH 4
-
 static inline void ltrim(std::string &s) {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
         return !std::isspace(ch);
@@ -48,7 +44,19 @@ std::vector<std::string> Object::lexer(const std::string& data){
             i++;
             while(data[i] != '\"'){
                 if(data[i] == '\\'){
-                    token += data[++i];
+                    // char escape_sequence;
+                    // switch(data[i]){
+                    //     case 'b': escape_sequence = '\b'; break;
+                    //     case 'f': escape_sequence = '\f'; break;
+                    //     case 'n': escape_sequence = '\n'; break;
+                    //     case 'r': escape_sequence = '\r'; break;
+                    //     case 't': escape_sequence = '\t'; break;
+                    //     case 'u': escape_sequence = '\u1234'; break;
+                        
+                    // }
+                    // if(data[i + 1] == 'n') token += '\n'
+                     
+                    token += '\\' + 
                     i++;
                 }
                 else{
@@ -69,13 +77,6 @@ std::vector<std::string> Object::lexer(const std::string& data){
     }
     return tokens;
 }
-enum class States{
-    OBJECT,
-    LIST
-};
-
-
-
 
 /* This function is written in reference to a push down automata*/
 Type Object::parser(const std::vector<std::string>& tokens){
@@ -93,15 +94,25 @@ Type Object::parser(const std::vector<std::string>& tokens){
     auto isBoolean = [](const std::string& token){
         return token == "true" || token == "false";
     };
-    Type JSON = Type::Object();
+    Type JSON;
     std::stack<Type*> stack;
     std::string activeKey;
-    assert(tokens[0] == "{");
     stack.push(&JSON);
-    int state = 2;
-    for(size_t i = 1 ; i < tokens.size() ; i++){
+    int state = 1;
+    for(size_t i = 0 ; i < tokens.size() ; i++){
         // const std::string& token = tokens[i];
         switch(state){
+            case 1:
+                 if(tokens[i] == "{"){
+                    *stack.top()= Type::Object();
+                    state = 2;
+                }
+                else if(tokens[i] == "["){
+                    *stack.top()= Type::List();
+                    state = 6;
+                }
+                else state = -1;
+                break;
             case 2:
                 if(isString(tokens[i])){
                     activeKey  = tokens[i].substr(1, tokens[i].length() - 2);
