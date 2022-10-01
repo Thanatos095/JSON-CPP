@@ -5,9 +5,9 @@
 #include<vector>
 #include<memory>
 
-#define field(X,...) (std::make_pair(std::string(#X), Type(__VA_ARGS__)))
+#define field(X,...) std::make_pair(std::string(#X), Type(__VA_ARGS__))
 
-enum TypeId{
+enum class TypeId{
     NUMBER = 1,
     TEXT = 2,
     LIST = 3,
@@ -15,18 +15,8 @@ enum TypeId{
     NULL_VALUE = 5,
     BOOLEAN = 6
 };
-enum Operations{
-    SUM = 1,
-    DIFF = 2,
-    PROD = 3,
-    DIV = 4, 
-    REM = 5
-};
 
-inline size_t concatenateKeys(size_t a, size_t b, size_t c){
-    size_t key = a * 100 + b * 10 + c;
-    return key;
-}
+
 
 class Type
 {
@@ -36,17 +26,8 @@ private:
         std::string _text;
         std::vector<Type> _list;
         std::unordered_map<std::string, std::shared_ptr<Type>> _object;
-
     };
     TypeId _id;
-
-    friend Type computeNumberSum(const Type& _first, const Type& _second);
-    friend Type computeNumberDiff(const Type& _first, const Type& _second);
-    friend Type computeNumberProd(const Type& _first, const Type& _second);
-    friend Type computeNumberDiv(const Type& _first, const Type& _second);
-    friend Type computeNumberRem(const Type& _first, const Type& _second);
-    friend Type computeStringConcat(const Type& _first, const Type& _second);
-    friend Type computeListConcat(const Type& _first, const Type& _second);
     friend class List;
     friend class Object;
     void releaseResources();
@@ -58,8 +39,8 @@ private:
 public:
     Type(const Type&);
     Type(Type&&);
-    template<typename T>
-    Type(T); /*Numeric types*/
+    Type(double); /*Numeric types*/
+    Type(int);
     Type(const std::string&);
     Type(const char*);
     Type(const std::vector<Type>&);
@@ -71,11 +52,6 @@ public:
     static Type Null();
     Type& operator=(const Type&);
     bool operator==(const Type& object);
-    Type operator+(const Type& object);
-    Type operator-(const Type& object);
-    Type operator*(const Type& object);
-    Type operator/(const Type& object);
-    Type operator%(const Type& object);
     Type& operator[](const std::string&);
     Type& operator[](size_t index);
     friend std::ostream& operator<< (std::ostream& stream, const Type& object);

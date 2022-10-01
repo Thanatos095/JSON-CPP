@@ -3,6 +3,7 @@
 #include<iostream>
 #include<memory>
 #include<stack>
+#include<vector>
 #include<algorithm>
 #include<string>
 #include<unordered_map>
@@ -21,14 +22,6 @@ class Object{
         Type keys();
         ~Object();
     private:
-        class Lexer{
-                Lexer(const std::string&);
-                const std::vector<std::string>& get();
-                static bool isString(const std::string&);
-            private:
-
-                std::vector<std::pair<std::string, TypeId>> tokens;
-        };
         static std::vector<std::string> lexer(const std::string& data);
         static Type parser(const std::vector<std::string>& tokens);
         std::unordered_map<std::string, std::shared_ptr<Type>>* _map;

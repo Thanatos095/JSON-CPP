@@ -31,39 +31,7 @@ void Type::initializeResources(){
         break;
     }
 }
-Type computeNumberSum(const Type& _first, const Type& _second){
-    return _first._number + _second._number;
-}
-Type computeNumberDiff(const Type& _first, const Type& _second){
-    return _first._number - _second._number;
-}
-Type computeNumberProd(const Type& _first, const Type& _second){
-    return _first._number * _second._number;
-}
-Type computeNumberDiv(const Type& _first, const Type& _second){
-    if(_second._number == 0) throw std::runtime_error("Division by 0");
-    return _first._number / _second._number;
-}
-Type computeNumberRem(const Type& _first, const Type& _second){
-    return int(_first._number) % int(_second._number);
-}
-Type computeStringConcat(const Type& _first, const Type& _second){
-    return _first._text + _second._text;
-}
-Type computeListConcat(const Type& _first, const Type& _second){
-    std::vector<Type> _result(_first._list);
-    _result.insert(_result.end(), _second._list.begin(), _second._list.end());
-    return _result;
-}
-std::unordered_map<size_t, Type::function_type> Type::_function_map = {
-    {concatenateKeys(NUMBER, NUMBER, SUM), computeNumberSum},
-    {concatenateKeys(NUMBER, NUMBER, DIFF), computeNumberDiff},
-    {concatenateKeys(NUMBER, NUMBER, PROD), computeNumberProd},
-    {concatenateKeys(NUMBER, NUMBER, DIV), computeNumberDiv},
-    {concatenateKeys(NUMBER, NUMBER, REM), computeNumberRem},
-    {concatenateKeys(TEXT, TEXT, SUM), computeStringConcat},
-    {concatenateKeys(LIST, LIST, SUM), computeListConcat}
-};
+
 Type::Type(const Type& ref){
     this->_id = ref._id;
     switch(this->_id){
@@ -99,11 +67,14 @@ Type::Type(Type&& source){
     }
 }
 Type::Type(){
-    this->_id = NULL_VALUE;
+    this->_id = TypeId::NULL_VALUE;
     this->_number = 0;
 }
-template<typename T>
-Type::Type(T value){
+Type::Type(double value){
+    this->_id = TypeId::NUMBER;
+    this->_number = value;
+}
+Type::Type(int value){
     this->_id = TypeId::NUMBER;
     this->_number = value;
 }
@@ -143,13 +114,13 @@ Type Type::List(){
 }
 Type Type::Object(){
     Type _to_return;
-    _to_return._id = OBJECT;
+    _to_return._id = TypeId::OBJECT;
     new ( &_to_return._object ) std::unordered_map<std::string, std::shared_ptr<Type>>();
     return _to_return;
 }
 Type Type::Null(){
     Type _to_return;
-    _to_return._id = NULL_VALUE;
+    _to_return._id = TypeId::NULL_VALUE;
     return _to_return;
 }
 Type& Type::operator=(const Type& ref){
@@ -188,47 +159,16 @@ bool Type::operator==(const Type& object){
     return this == &object;
 }
 
-Type Type::operator+(const Type& object){
-    size_t key = concatenateKeys(this->_id, object._id, SUM);
-    auto it = Type::_function_map.find(key);
-    if(it == Type::_function_map.end()) throw std::runtime_error("This operation is not valid/defined.");
-    return it->second(*this, object);
-}
-Type Type::operator-(const Type& object){
-    size_t key = concatenateKeys(this->_id, object._id, DIFF);
-    auto it = Type::_function_map.find(key);
-
-    if(it == Type::_function_map.end()) throw std::runtime_error("This operation is not valid/defined.");
-    return it->second(*this, object);
-}
-Type Type::operator*(const Type& object){
-    size_t key = concatenateKeys(this->_id, object._id, PROD);
-    auto it = Type::_function_map.find(key);
-    if(it == Type::_function_map.end()) throw std::runtime_error("This operation is not valid/defined.");
-    return it->second(*this, object);
-}
-Type Type::operator/(const Type& object){
-    size_t key = concatenateKeys(this->_id, object._id, DIV);
-    auto it = Type::_function_map.find(key);
-    if(it == Type::_function_map.end()) throw std::runtime_error("This operation is not valid/defined.");
-    return it->second(*this, object);
-}
-Type Type::operator%(const Type& object){
-    size_t key = concatenateKeys(this->_id, object._id, REM);
-    auto it = Type::_function_map.find(key);
-    if(it == Type::_function_map.end()) throw std::runtime_error("This operation is not valid/defined.");
-    return it->second(*this, object);
-}
 
 Type& Type::operator[](const std::string& key){
-    if(this->_id != OBJECT) throw std::runtime_error("Type must be an object.");
+    if(this->_id != TypeId::OBJECT) throw std::runtime_error("Type must be an object.");
     auto it = this->_object.find(key);
     if(it == this->_object.end())
         this->_object.insert(std::pair(key, std::make_shared<Type>(Type())));
     return *this->_object[key];
 }
 Type& Type::operator[](size_t index){
-    if(this->_id != LIST) throw std::runtime_error("Type must be a list.");
+    if(this->_id != TypeId::LIST) throw std::runtime_error("Type must be a list.");
     return this->_list[index];
 }
 Type::~Type(){
@@ -279,4 +219,3 @@ std::ostream& operator<< (std::ostream& stream, const Type& object)
     object.prettyPrint(stream, object, 1);
     return stream;
 }
-

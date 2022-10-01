@@ -20,12 +20,12 @@ static inline void trim(std::string &s) {
 }
 
 Object::Object(Type& ref){
-    if(ref._id != OBJECT) throw std::runtime_error("Object is not a map type.");
+    if(ref._id != TypeId::OBJECT) throw std::runtime_error("Object is not a map type.");
     this->_map = &ref._object;
     this->_owns_memory = false;
 }
 Object::Object(Type&& obj){
-    if(obj._id != OBJECT) throw std::runtime_error("Object is not a map type.");
+    if(obj._id != TypeId::OBJECT) throw std::runtime_error("Object is not a map type.");
     this->_map = new std::unordered_map<std::string, std::shared_ptr<Type>>(std::move(obj._object));
     this->_owns_memory = true;
 }
@@ -125,7 +125,7 @@ Type Object::parser(const std::vector<std::string>& tokens){
                     state = 3;
                 }
                 else if(tokens[i] == "}"){
-                    if(stack.top()->_id == OBJECT){
+                    if(stack.top()->_id == TypeId::OBJECT){
                         stack.pop();
                         state = 5;
                     } 
@@ -159,11 +159,11 @@ Type Object::parser(const std::vector<std::string>& tokens){
                             else if(isNum) object = std::atof(tokens[i].data());
                             else if(isBool) object = tokens[i][0] == 'f' ? false : true;
                             else if(isNulled) object = Type::Null();
-                            if(stack.top()->_id == OBJECT)
+                            if(stack.top()->_id == TypeId::OBJECT)
                             {
                                 (*stack.top())[activeKey] = object;
                             }   
-                            else if(stack.top()->_id == LIST){
+                            else if(stack.top()->_id == TypeId::LIST){
                                 stack.top()->_list.push_back(object);
                             }         
                             state = 5;
@@ -174,22 +174,22 @@ Type Object::parser(const std::vector<std::string>& tokens){
             }
             case 5:
                 if(tokens[i] == ","){
-                    if(stack.top()->_id == OBJECT){
+                    if(stack.top()->_id == TypeId::OBJECT){
                         state = 2;
                     }
-                    else if(stack.top()->_id == LIST){
+                    else if(stack.top()->_id == TypeId::LIST){
                         state = 6;
                     }
                 }
                 else if(tokens[i] == "}"){
-                    if(stack.top()->_id == OBJECT){
+                    if(stack.top()->_id == TypeId::OBJECT){
                         stack.pop();
                     } 
                     else state = -1;
                     /* remain at state 5*/
                 }
                 else if(tokens[i] == "]"){
-                    if(stack.top()->_id == LIST){
+                    if(stack.top()->_id == TypeId::LIST){
                         stack.pop();
                     } 
                     else state = -1;
@@ -211,7 +211,7 @@ Type Object::parser(const std::vector<std::string>& tokens){
                     /*Remain at state 6*/
                 }
                 else if(tokens[i] == "]"){
-                    if(stack.top()->_id == LIST){
+                    if(stack.top()->_id == TypeId::LIST){
                         stack.pop();
                         state = 5;
                     } 
@@ -226,11 +226,11 @@ Type Object::parser(const std::vector<std::string>& tokens){
                             else if(isNum) object = std::atof(tokens[i].data());
                             else if(isBool) object = tokens[i][0] == 'f' ? false : true;
                             else if(isNulled) object = Type::Null();
-                            if(stack.top()->_id == OBJECT)
+                            if(stack.top()->_id == TypeId::OBJECT)
                             {
                                 (*stack.top())[activeKey] = object;
                             }   
-                            else if(stack.top()->_id == LIST){
+                            else if(stack.top()->_id == TypeId::LIST){
 
                                 stack.top()->_list.push_back(object);
                             }         
