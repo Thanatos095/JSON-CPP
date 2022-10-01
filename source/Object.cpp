@@ -22,14 +22,20 @@ static inline void trim(std::string &s) {
 Object::Object(Type& ref){
     if(ref._id != OBJECT) throw std::runtime_error("Object is not a map type.");
     this->_map = &ref._object;
+    this->_owns_memory = false;
 }
-template<typename T>
-int Object::contains(std::vector<T>& tokens, const T& value){
-    auto it = std::find(tokens.begin(), tokens.end(), value);
-    return it == tokens.end() ? -1 : it - tokens.begin();
+Object::Object(Type&& obj){
+    if(obj._id != OBJECT) throw std::runtime_error("Object is not a map type.");
+    this->_map = new std::unordered_map<std::string, std::shared_ptr<Type>>(std::move(obj._object));
+    this->_owns_memory = true;
 }
-
 std::vector<std::string> Object::lexer(const std::string& data){
+    
+    auto contains = [](const std::vector<char>& tokens, char value){
+        auto it = std::find(tokens.begin(), tokens.end(), value);
+        return it == tokens.end() ? -1 : it - tokens.begin();
+    };
+
     std::vector<char> symbols = {'{', '}', '[', ']', ',', ':'};    
     std::vector<std::string> tokens;
 
@@ -42,26 +48,8 @@ std::vector<std::string> Object::lexer(const std::string& data){
         else if(data[i] == '\"'){
             std::string token = "\"";
             i++;
-            while(data[i] != '\"'){
-                if(data[i] == '\\'){
-                    // char escape_sequence;
-                    // switch(data[i]){
-                    //     case 'b': escape_sequence = '\b'; break;
-                    //     case 'f': escape_sequence = '\f'; break;
-                    //     case 'n': escape_sequence = '\n'; break;
-                    //     case 'r': escape_sequence = '\r'; break;
-                    //     case 't': escape_sequence = '\t'; break;
-                    //     case 'u': escape_sequence = '\u1234'; break;
-                        
-                    // }
-                    // if(data[i + 1] == 'n') token += '\n'
-                     
-                    token += '\\' + 
-                    i++;
-                }
-                else{
-                    token += data[i++];
-                }
+            while(data[i] != '\"'){               
+                token += data[i++];
             }
             token += '\"';
             trim(token);
@@ -81,8 +69,27 @@ std::vector<std::string> Object::lexer(const std::string& data){
 /* This function is written in reference to a push down automata*/
 Type Object::parser(const std::vector<std::string>& tokens){
     auto isString = [](const std::string& token){
-        std::regex string_literal(R"(\"([^"\\]*|\\[\\\/"bfnrtu])*\")");
-        return std::regex_match(token, string_literal);
+        bool str = token[0] == '\"' && token[token.size() - 1] == '\"'; 
+        if(!str) return false;
+        for(size_t i = 1 ;i < token.size() - 1 ; i++){
+            if(token[i] == '\\') {
+                if(++i >= token.size())
+                    return false;
+                else{
+                    switch(token[i]){
+                        case '\\': break;
+                        case '/': break;
+                        case '\b': break;
+                        case '\f': break;
+                        case '\n': break;
+                        case '\r': break;
+                        case '\t': break;
+                        default : return false;
+                    }
+                }
+            }
+        } 
+        return true;
     };
     auto isNumeric = [](const std::string& token){
         std::regex number_literal("[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)");
@@ -100,7 +107,6 @@ Type Object::parser(const std::vector<std::string>& tokens){
     stack.push(&JSON);
     int state = 1;
     for(size_t i = 0 ; i < tokens.size() ; i++){
-        // const std::string& token = tokens[i];
         switch(state){
             case 1:
                  if(tokens[i] == "{"){
@@ -271,6 +277,12 @@ Type Object::keys(){
     }
     return list;
 }
+bool Object::contains(const std::string& key){
+    auto it = this->_map->find(key);
+    return it != this->_map->end();
+}
+
 Object::~Object(){
+    if(this->_owns_memory) delete this->_map;
     this->_map = nullptr;
 }

@@ -16,6 +16,10 @@ void List::push(const Type& item){
 void List::push(Type&& item){
     this->_list->push_back(std::move(item));
 }
+int List::contains(const Type& value){
+    auto it = std::find(this->_list->begin(), this->_list->end(), value);
+    return (it == this->_list->end() ? -1 : it - this->_list->begin());
+}
 void List::clear(){
     this->_list->clear();
 }

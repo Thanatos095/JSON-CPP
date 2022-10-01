@@ -2,6 +2,7 @@
 #define LIST_HPP
 #include <iostream>
 #include <Type.hpp>
+#include <algorithm>
 #include <vector>
 class List{
     public:
@@ -10,6 +11,7 @@ class List{
         void push(const Type&);
         void push(Type&&);
         void clear();
+        int contains(const Type&);
         Type map(Type(*)(Type&, size_t));
         void forEach(void(*)(Type&, size_t));
         Type pop();
