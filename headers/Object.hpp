@@ -22,8 +22,20 @@ class Object{
         Type keys();
         ~Object();
     private:
-        static std::vector<std::string> lexer(const std::string& data);
-        static Type parser(const std::vector<std::string>& tokens);
+        class Lexer{
+            public:
+                Lexer(std::ifstream& handle);
+                const std::vector<std::pair<std::string, int>>& get();
+            private:
+                static bool isNumeric(const std::string&);
+                static int contains(const std::vector<char>& tokens, char value);
+                static void trim(std::string&);
+                std::ifstream& _handle;
+                std::vector<std::pair<std::string, int>> _tokens;
+                std::vector<char> _symbols;
+                std::string _buffer;
+        };
+        static Type parser(Lexer&);
         std::unordered_map<std::string, std::shared_ptr<Type>>* _map;
         bool _owns_memory;
 };

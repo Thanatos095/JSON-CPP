@@ -1,12 +1,12 @@
 #include<List.hpp>
 
 List::List(Type& list){
-    if(list._id != LIST) throw std::runtime_error("Object is not an iterable type.");
+    if(list._id != TypeId::LIST) throw std::runtime_error("Object is not an iterable type.");
     this->_list = &list._list;
     this->_owns_memory = false;
 }
 List::List(Type&& source){
-    if(source._id != LIST) throw std::runtime_error("Object is not an iterable type.");
+    if(source._id != TypeId::LIST) throw std::runtime_error("Object is not an iterable type.");
     this->_list = new std::vector<Type>(std::move(source._list));
     this->_owns_memory = true;
 }

@@ -145,20 +145,22 @@ Type& Type::operator=(const Type& ref){
     }
     return *this;
 }
-bool Type::operator==(const Type& object){
-    // switch(this->_id){
-    //     case TypeId::LIST:
-    //         return this->_list == object._list;
-    //     case TypeId::OBJECT:
-    //         return this->_object == object._object;
-    //     case TypeId::TEXT:
-    //         return this->_text == object._text;
-    //     default:
-    //         return this->_number == object._number;
-    // }
+bool Type::operator==(const Type& object) const{
+    switch(this->_id){
+        case TypeId::LIST:
+            return this->_list == object._list;
+        case TypeId::OBJECT:
+            return this->_object == object._object;
+        case TypeId::TEXT:
+            return this->_text == object._text;
+        default:
+            return this->_number == object._number;
+    }
     return this == &object;
 }
-
+bool Type::operator!=(const Type& object) const{
+    return !(*this == object);
+}
 
 Type& Type::operator[](const std::string& key){
     if(this->_id != TypeId::OBJECT) throw std::runtime_error("Type must be an object.");

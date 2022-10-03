@@ -51,7 +51,8 @@ public:
     static Type Object(); /* Empty Object*/
     static Type Null();
     Type& operator=(const Type&);
-    bool operator==(const Type& object);
+    bool operator==(const Type& object) const;
+    bool operator!=(const Type& object) const;
     Type& operator[](const std::string&);
     Type& operator[](size_t index);
     friend std::ostream& operator<< (std::ostream& stream, const Type& object);
